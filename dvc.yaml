@@ -1,0 +1,19 @@
+stages:
+  prepare:
+    cmd: python3 -m src.data_prep
+    deps:
+      - src/data_prep.py
+      - data/raw/credit_risk.csv
+    outs:
+      - data/processed/train.csv
+      - data/processed/valid.csv
+
+  train:
+    cmd: python3 -m src.train
+    deps:
+      - src/train.py
+      - src/model_utils.py
+      - data/processed/train.csv
+      - data/processed/valid.csv
+    outs:
+      - models/model-latest.pkl

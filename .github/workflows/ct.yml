@@ -1,0 +1,46 @@
+name: Continuous Training (CT)
+
+on:
+  schedule:
+    # Cada 10 minutos (zona horaria: UTC)
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  continuous-training:
+    runs-on: ubuntu-latest
+
+    env:
+      PYTHON_VERSION: "3.11"
+
+    steps:
+      # 0) Checkout
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 1) Setup Python
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # 2) Instalar dependencias
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 3) PREPROCESAMIENTO
+      - name: Preprocesamiento de datos (CT)
+        run: |
+          python -m src.data_prep
+
+      # 4) ENTRENAMIENTO
+      - name: Entrenamiento del modelo (CT)
+        run: |
+          python -m src.train
+
+      # 5) EVALUACIÓN
+      - name: Evaluación del modelo (CT)
+        run: |
+          python -m src.evaluate
