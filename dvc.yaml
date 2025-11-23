@@ -20,6 +20,4 @@ stages:
       - data/processed/valid.csv
     outs:
       - models/model-latest.pkl
-    metrics:
-      - mlruns/**/metrics/*
  

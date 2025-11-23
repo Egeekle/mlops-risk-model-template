@@ -31,6 +31,18 @@ stages:
       hash: md5
       md5: 20fd31125959090885b397d230d7695b
       size: 326465
+    - path: src/config.py
+      hash: md5
+      md5: 8e8861169f1c7e27a757df21015720e6
+      size: 1426
+    - path: src/cross_validation.py
+      hash: md5
+      md5: ef1e7e08e4e6d571cef326b04597fb87
+      size: 3643
+    - path: src/hyperparameter_optimization.py
+      hash: md5
+      md5: 201775587917617594ba23e67eb8c66c
+      size: 5417
     - path: src/model_utils.py
       hash: md5
       md5: 44c52d153c430a04991d4e937962a480
