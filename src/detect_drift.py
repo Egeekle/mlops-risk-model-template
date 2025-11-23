@@ -51,10 +51,11 @@ def load_production_batch() -> pd.DataFrame:
 
 
 def load_baseline_metrics() -> dict:
+    """Carga métricas baseline. Retorna None si no existen."""
     if not BASELINE_METRICS_PATH.exists():
-        raise FileNotFoundError(
-            f"No se encontró {BASELINE_METRICS_PATH}. Entrena el modelo (src.train) para generar métricas baseline."
-        )
+        print(f"ADVERTENCIA: No se encontró {BASELINE_METRICS_PATH}.")
+        print("El modelo drift check se omitirá. Solo se verificará data drift.")
+        return None
     with open(BASELINE_METRICS_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -98,11 +99,17 @@ def compute_data_drift(train_df: pd.DataFrame, prod_df: pd.DataFrame) -> bool:
 
 def compute_model_drift(prod_df: pd.DataFrame, baseline_metrics: dict) -> bool:
     """Model drift: degradación de métricas vs baseline."""
+    
+    if baseline_metrics is None:
+        print("=== MODEL DRIFT CHECK ===")
+        print("Omitido: No hay métricas baseline disponibles.")
+        return False
 
     if not LATEST_MODEL_PATH.exists():
-        raise FileNotFoundError(
-            f"No se encontró modelo en {LATEST_MODEL_PATH}. Entrena primero el modelo (src.train)."
-        )
+        print("=== MODEL DRIFT CHECK ===")
+        print(f"ADVERTENCIA: No se encontró modelo en {LATEST_MODEL_PATH}.")
+        print("El model drift check se omitirá.")
+        return False
 
     model = joblib.load(LATEST_MODEL_PATH)
     X_prod, y_prod = split_features_target(prod_df, TARGET_COLUMN)

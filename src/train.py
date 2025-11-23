@@ -23,6 +23,8 @@ from .config import (
     OPTUNA_STUDY_NAME,
     OPTUNA_DIRECTION,
     OPTUNA_METRIC,
+    METRICS_DIR,
+    BASELINE_METRICS_PATH,
 )
 from .model_utils import split_features_target, build_model_pipeline
 from .cross_validation import perform_cross_validation, get_cv_summary
@@ -166,6 +168,17 @@ def main() -> None:
         MODELS_DIR.mkdir(parents=True, exist_ok=True)
         joblib.dump(model, LATEST_MODEL_PATH)
         print(f"Modelo guardado en: {LATEST_MODEL_PATH}")
+        
+        # 10) Guardar métricas baseline para detección de drift
+        import json
+        METRICS_DIR.mkdir(parents=True, exist_ok=True)
+        baseline_metrics = {
+            "auc_valid": float(auc),
+            "f1_valid": float(f1),
+        }
+        with open(BASELINE_METRICS_PATH, "w", encoding="utf-8") as f:
+            json.dump(baseline_metrics, f, indent=2)
+        print(f"Métricas baseline guardadas en: {BASELINE_METRICS_PATH}")
 
 
 if __name__ == "__main__":
