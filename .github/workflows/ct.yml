@@ -34,40 +34,73 @@ jobs:
           pip install -r requirements.txt
           echo "Dependencias instaladas: scikit-learn, optuna, mlflow, etc."
 
-      # 3) Generar batch de producción (simular data/model drift)
+      # 2.1) Setup directories and check/generate data
+      - name: Setup directories and check data
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          mkdir -p data/raw data/processed models mlruns metrics data/production
+          if [ ! -f "data/raw/credit_risk.csv" ]; then
+            echo "data/raw/credit_risk.csv no encontrado, generando datos sintéticos..."
+            python -m src.generate_synthetic_data
+            if [ -f "data/raw/credit_risk_synthetic.csv" ]; then
+              mv data/raw/credit_risk_synthetic.csv data/raw/credit_risk.csv
+              echo "Datos generados y renombrados correctamente"
+            fi
+          fi
+
+      # 3) PREPROCESAMIENTO (necesario para tener datos de referencia para detect_drift)
+      - name: Preprocesamiento de datos (para referencia)
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python -m src.data_prep
+
+      # 4) Generar batch de producción (simular data/model drift)
       - name: Generar datos de producción (simular drift)
         env:
+          PYTHONPATH: ${{ github.workspace }}
           DRIFT_SCENARIO: ${{ env.DRIFT_SCENARIO }}
         run: |
           python -m src.simulate_production_data
 
-      # 4) Detectar drift y decidir si reentrenar
+      # 5) Detectar drift y decidir si reentrenar
       - name: Detectar data drift y model drift
         id: detect
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           python -m src.detect_drift
 
-      # 5) PREPROCESAMIENTO (solo si retrain = true)
-      - name: Preprocesamiento de datos (CT)
+      # 6) PREPROCESAMIENTO (solo si retrain = true y necesitamos regenerar)
+      - name: Preprocesamiento de datos (CT - regenerar si es necesario)
         if: steps.detect.outputs.retrain == 'true'
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
+          echo "Regenerando datos de entrenamiento para reentrenamiento..."
           python -m src.data_prep
 
-      # 6) ENTRENAMIENTO (solo si retrain = true)
+      # 7) ENTRENAMIENTO (solo si retrain = true)
       # Incluye: Optuna hyperparameter optimization + Stratified K-Fold CV
       - name: Entrenamiento del modelo (CT con Optuna + CV)
         if: steps.detect.outputs.retrain == 'true'
         env:
-          OPTUNA_N_TRIALS: 50
+          PYTHONPATH: ${{ github.workspace }}
+          OPTUNA_N_TRIALS: 20
           OPTUNA_METRIC: "auc"
+        timeout-minutes: 30
         run: |
           echo "Reentrenamiento con optimización de hiperparámetros..."
           echo "Usando Optuna para encontrar mejores hiperparámetros"
+          echo "Número de trials: $OPTUNA_N_TRIALS (reducido para CI/CD)"
           python -m src.train
 
-      # 7) EVALUACIÓN (solo si retrain = true)
+      # 8) EVALUACIÓN (solo si retrain = true)
       - name: Evaluación del modelo (CT)
         if: steps.detect.outputs.retrain == 'true'
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           python -m src.evaluate
 
