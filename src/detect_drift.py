@@ -1,21 +1,36 @@
 # src/detect_drift.py
 import json
 import os
+import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score, f1_score
-
-from .config import (
-    PROCESSED_DATA_DIR,
-    PRODUCTION_DATA_PATH,
-    BASELINE_METRICS_PATH,
-    TARGET_COLUMN,
-    LATEST_MODEL_PATH,
-)
-from .model_utils import split_features_target
 import joblib
+
+# Handle both module and direct execution
+if __name__ == "__main__":
+    # Add parent directory to path for direct execution
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from src.config import (
+        PROCESSED_DATA_DIR,
+        PRODUCTION_DATA_PATH,
+        BASELINE_METRICS_PATH,
+        TARGET_COLUMN,
+        LATEST_MODEL_PATH,
+    )
+    from src.model_utils import split_features_target
+else:
+    # Relative imports for module execution
+    from .config import (
+        PROCESSED_DATA_DIR,
+        PRODUCTION_DATA_PATH,
+        BASELINE_METRICS_PATH,
+        TARGET_COLUMN,
+        LATEST_MODEL_PATH,
+    )
+    from .model_utils import split_features_target
 
 
 def load_train_reference() -> pd.DataFrame:

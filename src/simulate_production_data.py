@@ -1,12 +1,21 @@
 # src/simulate_production_data.py
 import os
+import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from .config import PRODUCTION_DATA_DIR, PRODUCTION_DATA_PATH, RANDOM_STATE
-from .generate_synthetic_data import generate_credit_risk_dataset
+# Handle both module and direct execution
+if __name__ == "__main__":
+    # Add parent directory to path for direct execution
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from src.config import PRODUCTION_DATA_DIR, PRODUCTION_DATA_PATH, RANDOM_STATE
+    from src.generate_synthetic_data import generate_credit_risk_dataset
+else:
+    # Relative imports for module execution
+    from .config import PRODUCTION_DATA_DIR, PRODUCTION_DATA_PATH, RANDOM_STATE
+    from .generate_synthetic_data import generate_credit_risk_dataset
 
 
 def apply_data_drift(df: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
