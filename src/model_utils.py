@@ -39,7 +39,29 @@ def split_features_target(df: pd.DataFrame, target_column: str) -> Tuple[pd.Data
     return X, y
 
 
-def build_model_pipeline(random_state: int = 42) -> Pipeline:
+def build_model_pipeline(
+    random_state: int = 42,
+    C: float = 1.0,
+    penalty: str = "l2",
+    solver: str = "lbfgs",
+    max_iter: int = 1000,
+    class_weight: str = None,
+    l1_ratio: float = 0.5,
+) -> Pipeline:
+    """
+    Build a model pipeline with configurable hyperparameters.
+    
+    Args:
+        random_state: Random state for reproducibility
+        C: Inverse of regularization strength (smaller = stronger regularization)
+        penalty: Regularization penalty ('l1', 'l2', 'elasticnet', None)
+        solver: Algorithm to use ('lbfgs', 'liblinear', 'newton-cg', 'sag', 'saga')
+        max_iter: Maximum number of iterations
+        class_weight: Class weight strategy ('balanced', None, or dict)
+        
+    Returns:
+        Scikit-learn Pipeline
+    """
     numeric_transformer = Pipeline(
         steps=[
             ("scaler", StandardScaler()),
@@ -59,10 +81,32 @@ def build_model_pipeline(random_state: int = 42) -> Pipeline:
         ]
     )
 
-    clf = LogisticRegression(
-        max_iter=1000,
-        random_state=random_state,
-    )
+    # Handle solver compatibility with penalty
+    if penalty == "l1":
+        if solver not in ["liblinear", "saga"]:
+            solver = "liblinear"
+    elif penalty == "elasticnet":
+        if solver != "saga":
+            solver = "saga"
+    elif penalty == "l2" or penalty is None:
+        if solver not in ["lbfgs", "liblinear", "newton-cg", "sag", "saga"]:
+            solver = "lbfgs"
+
+    # Build LogisticRegression with appropriate parameters
+    lr_params = {
+        "C": C,
+        "penalty": penalty,
+        "solver": solver,
+        "max_iter": max_iter,
+        "random_state": random_state,
+        "class_weight": class_weight,
+    }
+    
+    # Add l1_ratio only for elasticnet penalty
+    if penalty == "elasticnet":
+        lr_params["l1_ratio"] = l1_ratio
+    
+    clf = LogisticRegression(**lr_params)
 
     model = Pipeline(
         steps=[

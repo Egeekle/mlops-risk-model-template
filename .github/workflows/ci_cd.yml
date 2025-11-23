@@ -28,19 +28,50 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          echo "Dependencias instaladas: scikit-learn, optuna, mlflow, etc."
+
+      # 2.1) Crear directorios necesarios y verificar/generar datos
+      - name: Setup directories and check data
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          mkdir -p data/raw data/processed models mlruns
+          if [ ! -f "data/raw/credit_risk.csv" ]; then
+            echo "data/raw/credit_risk.csv no encontrado, generando datos sintéticos..."
+            python -m src.generate_synthetic_data
+            # El script genera credit_risk_synthetic.csv, lo renombramos
+            if [ -f "data/raw/credit_risk_synthetic.csv" ]; then
+              mv data/raw/credit_risk_synthetic.csv data/raw/credit_risk.csv
+              echo "Datos generados y renombrados correctamente"
+            fi
+          else
+            echo "Archivo data/raw/credit_risk.csv encontrado"
+          fi
 
       # 3) PREPROCESAMIENTO
       - name: Preprocesamiento de datos
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           python -m src.data_prep
 
-      # 4) ENTRENAMIENTO
-      - name: Entrenamiento del modelo
+      # 4) ENTRENAMIENTO (con Optuna optimization y Cross-Validation)
+      - name: Entrenamiento del modelo (Optuna + CV)
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          OPTUNA_N_TRIALS: 20
+          OPTUNA_METRIC: "auc"
+        timeout-minutes: 30
         run: |
+          echo "Iniciando optimización de hiperparámetros con Optuna..."
+          echo "Métricas: Cross-Validation estratificada + Optimización de hiperparámetros"
+          echo "Número de trials: $OPTUNA_N_TRIALS (reducido para CI/CD)"
           python -m src.train
 
       # 5) EVALUACIÓN
       - name: Evaluación del modelo
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           python -m src.evaluate
 
